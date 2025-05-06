@@ -39,7 +39,11 @@ function hmetis(fname::String, Nparts::Int, UBfactor::Int, Nruns::Int, CType::In
     hmetis_log = "hmetis_log.txt"
     hmetis_cmd = hmetis_exec * " " * fname * " " * string(Nparts) * " " * string(UBfactor) * " " * string(Nruns) * " " * string(CType) * " " * string(RType) * " " * string(Vcycle) * " " * string(Reconst) * " " * string(dbglvl) * " > " * hmetis_log
     #hmetis_cmd = `$hmetis_exec $fname $Nparts $UBfactor $Nruns $CType $RType $Vcycle $Reconst $dbglvl`
-    run(`sh -c $hmetis_cmd`, wait=true)
+    try run(`sh -c $hmetis_cmd`, wait=true)
+    catch e
+        @warn "Error running hmetis"
+        @warn e
+    end
     cmd = "rm " * hmetis_log
     run(`sh -c $cmd`, wait=true)
 end
@@ -146,7 +150,7 @@ function OverlayBasedClusteringAndILP(hg::String, ub_factor::Int, seeds::Vector{
 
     k = 0
         
-    if hypergraph_clustered.e <= 2000
+    if hypergraph_clustered.e <= 0
 
         cmd = "zhiang_for_bodhi/ilp_cplex_k_way/build/ilp_k_solver" * " " * hg_name_clustered * " " * string(2) * " " * string(ub_factor) * " > ilp_log.txt"
         t_part = @elapsed begin
@@ -357,42 +361,42 @@ function SpectralHmetisRefinement(;refine_iters::Int = 4, solver_iters::Int = 20
     ExportHypergraph(hypergraph_clustered, hg_name_clustered, fixed_part_clustered)
     i = 0
 
-    if hypergraph_clustered.e < hyperedges_threshold
-        @info "RUNNING CPLEX AS GOLDEN PARTITIONER"
-        cmd = "zhiang_for_bodhi/ilp_cplex_k_way/build/ilp_k_solver" * " " * hg_name_clustered * " " * string(num_parts) * " " * string(ub_factor) * " > ilp_log.txt"
-        t_part = @elapsed begin
-            run(`sh -c $cmd`, wait=true)
-            pname = hg_name_clustered * ".part." * string(Nparts)
-            f = open(pname, "r")
+    # if hypergraph_clustered.e < hyperedges_threshold
+    #     @info "RUNNING CPLEX AS GOLDEN PARTITIONER"
+    #     cmd = "zhiang_for_bodhi/ilp_cplex_k_way/build/ilp_k_solver" * " " * hg_name_clustered * " " * string(num_parts) * " " * string(ub_factor) * " > ilp_log.txt"
+    #     t_part = @elapsed begin
+    #         run(`sh -c $cmd`, wait=true)
+    #         pname = hg_name_clustered * ".part." * string(Nparts)
+    #         f = open(pname, "r")
             
-            for ln in eachline(f)
-                i += 1
-                partition_vector[i]  = parse(Int, ln)
-            end
+    #         for ln in eachline(f)
+    #             i += 1
+    #             partition_vector[i]  = parse(Int, ln)
+    #         end
 
-            close(f)
+    #         close(f)
 
-            cmd = "rm " * pname
-            run(`sh -c $cmd`, wait=true)
-            cmd = "rm ilp_log.txt"
-            run(`sh -c $cmd`, wait=true)
-        end
-    else
-        @info "RUNNING HMETIS AS GOLDEN PARTITIONER"
-        t_part = @elapsed hmetis(hg_name_clustered, num_parts, ub_factor, 10, 1, 1, 0, 1, 0, "./hmetis") #"SpectralCommunityDetection/hmetis")
-        pname = hg_name_clustered * ".part." * string(Nparts)
-        f = open(pname, "r")
+    #         cmd = "rm " * pname
+    #         run(`sh -c $cmd`, wait=true)
+    #         cmd = "rm ilp_log.txt"
+    #         run(`sh -c $cmd`, wait=true)
+    #     end
+    # else
+    @info "RUNNING HMETIS AS GOLDEN PARTITIONER"
+    t_part = @elapsed hmetis(hg_name_clustered, num_parts, ub_factor, 10, 1, 1, 0, 1, 0, "./hmetis") #"SpectralCommunityDetection/hmetis")
+    pname = hg_name_clustered * ".part." * string(Nparts)
+    f = open(pname, "r")
 
-        for ln in eachline(f)
-            i += 1
-            partition_vector[i]  = parse(Int, ln)
-        end
-
-        close(f)
-
-        cmd = "rm " * pname
-        run(`sh -c $cmd`, wait=true)
+    for ln in eachline(f)
+        i += 1
+        partition_vector[i]  = parse(Int, ln)
     end
+
+    close(f)
+
+    cmd = "rm " * pname
+    run(`sh -c $cmd`, wait=true)
+    # end
 
     cmd = "rm " * hg_name_clustered
     run(`sh -c $cmd`, wait=true)

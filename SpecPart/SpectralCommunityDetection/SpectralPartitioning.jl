@@ -120,6 +120,8 @@ function WriteTreeToFile(tree::SimpleWeightedGraph, fname::String)
 end
 
 function ComputeTreePartition(adj_mat::SparseMatrixCSC, X::Array{Float64}, wt_matrix::SparseMatrixCSC, hypergraph::Hypergraph, incidence_struct::Incidence, fixed_vertices::Pindex, capacities::Vector{Int}, opts::Int, seed::Int)
+    tree = []
+    treeMatrix = []
     @match opts begin
         1 => begin
         clique_graph = ModifyExpanderWts(adj_mat, X[:, 1], 1, false)
@@ -209,6 +211,8 @@ function ComputeTreePartition(adj_mat::SparseMatrixCSC, X::Array{Float64}, wt_ma
         _ => @warn "Enter Correct Tree Opts!!"
     end
 
+    # @warn opts
+    # @warn "Tree: $tree"
     pvec_metis = MetisOnTree(hypergraph, incidence_struct, fixed_vertices, tree, treeMatrix, capacities, seed, opts)
     cut_metis = findCutsize(pvec_metis, hypergraph, incidence_struct)
     pvec_sweep, cut_sweep = FindBestCutOnTree(tree, hypergraph, incidence_struct, fixed_vertices, capacities, 1)

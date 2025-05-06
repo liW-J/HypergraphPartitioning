@@ -61,8 +61,9 @@ function GenEigenTree(g::SimpleWeightedGraph, A_wts::SparseMatrixCSC, eigvec::Ar
 		(i, j, v) = findnz(treeMatrix)
 	elseif tree_type == 2
 		#r = LightGraphs.kruskal_mst(g)
-		#tree = SimpleGraph(nv(g))
-		r = SimpleWeightedGraphs.prim_mst(g)
+		# tree = SimpleGraph(nv(g))
+		# r = SimpleWeightedGraphs.prim_mst(g)
+		r = SimpleWeightedGraphs.Graphs.prim_mst(g)
 		i = Vector{Int}(undef, length(r))
 		j = Vector{Int}(undef, length(r))
 		v = Vector{Float64}(undef, length(r))

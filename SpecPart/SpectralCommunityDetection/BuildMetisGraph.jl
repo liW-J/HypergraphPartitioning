@@ -6,7 +6,7 @@ function BuildMetisGraph(tree::SimpleWeightedGraph, opts::String)
     println(f, SimpleWeightedGraphs.nv(tree), " ", SimpleWeightedGraphs.ne(tree), " 001" )
 
     for i in 1:SimpleWeightedGraphs.nv(tree)
-        nbrs = SimpleWeightedGraphs.neighbors(tree, i)
+        nbrs = SimpleWeightedGraphs.Graphs.neighbors(tree, i)
 
         for j in 1:length(nbrs)
             nbr_vtx = nbrs[j]
