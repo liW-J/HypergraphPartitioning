@@ -733,7 +733,7 @@ function SpectralCommunities(h_c::Hypergraph_C, incidence_struct::Incidence, ubf
     (adj_mat, ~) = HypergraphToGraph(hypergraph, expander_cycles)
     X = GenEigenVecs(hypergraph, adj_mat, fixed_vertices, false, eigenvecs, eigen_iters)
 
-    #return X
+    # return X
     #k_means_token =  Clustering.kmeans(X', 100)
 
     k_means_token =  ParallelKMeans.kmeans(Yinyang(), X', 100)

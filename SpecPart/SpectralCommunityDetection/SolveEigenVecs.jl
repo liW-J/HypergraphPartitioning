@@ -6,8 +6,13 @@ function LinearAlgebra.ldiv!(c::AbstractVecOrMat{T}, P::CombinatorialMultigrid.l
 	end
 end
 
-@inline function makeBFunc(vWts::Vector, pindex::Pindex, multiplier::Vector)
-	bfunc = X -> dCliques(X, vWts, multiplier) + 10*dBiClique(X, pindex)
+# @inline function makeBFunc(vWts::Vector, pindex::Pindex, multiplier::Vector)
+# 	bfunc = X -> dCliques(X, vWts, multiplier) + 10*dBiClique(X, pindex)
+# 	return bfunc
+# end
+
+@inline function makeBFunc(vWts::Vector, pindex::Pindex, multiplier::Vector, H::Hypergraph)
+	bfunc = X -> dCliques(X, vWts, multiplier) + 10*dBiClique(X, pindex) + 10*hypL(H, X)
 	return bfunc
 end
 
@@ -59,7 +64,7 @@ function GenEigenVecs(H::Hypergraph, A::SparseMatrixCSC, pindex::Pindex, largest
 	B = sparse(I, n, n)=#
 
 	if bmap == nothing
-		bfunc = makeBFunc(vWts, pindex, multiplier)
+		bfunc = makeBFunc(vWts, pindex, multiplier, H)
 		bmap = LinearMap(bfunc, n)
 	end
 	
@@ -70,7 +75,8 @@ function GenEigenVecs(H::Hypergraph, A::SparseMatrixCSC, pindex::Pindex, largest
 		else
 			(pfunc, hierarchy) = CombinatorialMultigrid.cmg_preconditioner_lap(L)
 			#results = lobpcg(amap, bmap, largest, nev + 1, tol=1e-20, maxiter=solver_iters)
-			results = lobpcg(amap, bmap, largest, nev, tol=1e-40, maxiter=solver_iters, P=CombinatorialMultigrid.lPreconditioner(pfunc), log=true)
+			# results = lobpcg(amap, bmap, largest, nev, tol=1e-40, maxiter=solver_iters, P=CombinatorialMultigrid.lPreconditioner(pfunc), log=true)
+			results = lobpcg(LinearMap(Matrix{Float64}(I, n, n)), bmap, largest, nev, tol=1e-40, maxiter=solver_iters, P=CombinatorialMultigrid.lPreconditioner(pfunc), log=true)
 			#results = lobpcg(amap, largest, Y, nev, tol=1e-40, maxiter=solver_iters, P=CombinatorialMultigrid.lPreconditioner(pfunc), log=true)
 			#results = lobpcg(amap, bmap, largest, nev, tol=1e-40, maxiter=solver_iters, log=true)
 			@info "[EIGEN VECTOR DETAILS] :: $results"

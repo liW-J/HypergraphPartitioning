@@ -1,0 +1,10 @@
+*.gr
+*.wts
+*.part.*
+*.txt
+/SpecPart/*.gr
+/SpecPart/*.wts
+/SpecPart/*.part.*
+/SpecPart/*.txt
+/SpecPart/*.hgr
+.vscode

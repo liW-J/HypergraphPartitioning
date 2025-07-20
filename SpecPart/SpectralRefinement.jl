@@ -394,12 +394,12 @@ function SpectralHmetisRefinement(;refine_iters::Int = 4, solver_iters::Int = 20
 
     close(f)
 
-    cmd = "rm " * pname
-    run(`sh -c $cmd`, wait=true)
+    # cmd = "rm " * pname
+    # run(`sh -c $cmd`, wait=true)
     # end
 
-    cmd = "rm " * hg_name_clustered
-    run(`sh -c $cmd`, wait=true)
+    # cmd = "rm " * hg_name_clustered
+    # run(`sh -c $cmd`, wait=true)
     
     part_area = [0, 0]
     partition_vector_top = zeros(Int, hypergraph_processed.n)
