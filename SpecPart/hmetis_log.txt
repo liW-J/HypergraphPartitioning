@@ -1,0 +1,23 @@
+*******************************************************************************
+ HMETIS 1.5.3  Copyright 1998, Regents of the University of Minnesota
+
+HyperGraph Information -----------------------------------------------------
+ Name: circuit.hgr, #Vtxs:  2735, #Hedges:  2644, #Parts: 2, UBfactor: 0.05
+ Options: HFC, FM, Reconst-True, No V-cycles, No Fixed Vertices
+
+Recursive Partitioning... --------------------------------------------------
+
+ --------------------------------------------------------------------------
+  Summary for the 2-way partition:
+                Hyperedge Cut:        87		(minimize)
+      Sum of External Degrees:       174		(minimize)
+                  Scaled Cost:  4.65e-05		(minimize)
+                   Absorption:   2624.25		(maximize)
+
+      Partition Sizes & External Degrees:
+	  1389[  87]   1346[  87] 
+
+Timing Information ---------------------------------------------------------
+  Partitioning Time:		   0.306sec
+           I/O Time:		   0.002sec
+*******************************************************************************
