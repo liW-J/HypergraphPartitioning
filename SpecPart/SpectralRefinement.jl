@@ -40,7 +40,11 @@ function hmetis(fname::String, Nparts::Int, UBfactor::Int, Nruns::Int, CType::In
     hmetis_log = "hmetis_log.txt"
     hmetis_cmd = hmetis_exec * " " * fname * " " * string(Nparts) * " " * string(UBfactor) * " " * string(Nruns) * " " * string(CType) * " " * string(RType) * " " * string(Vcycle) * " " * string(Reconst) * " " * string(dbglvl) * " > " * hmetis_log
     #hmetis_cmd = `$hmetis_exec $fname $Nparts $UBfactor $Nruns $CType $RType $Vcycle $Reconst $dbglvl`
-    run(`sh -c $hmetis_cmd`, wait=true)
+    try run(`sh -c $hmetis_cmd`, wait=true)
+    catch e
+        @warn "Error running hmetis"
+        @warn e
+    end
     cmd = "rm " * hmetis_log
     run(`sh -c $cmd`, wait=true)
 end
@@ -316,6 +320,7 @@ function SpectralHmetisRefinement(;refine_iters::Int = 4, solver_iters::Int = 20
     end
 
     hmetis_cut = findCutsize(partition_vector, hypergraph_processed, incidence_struct)
+    hmetis_cut = 1000000
 
     partition_vector_orig = deepcopy(partition_vector)
 
@@ -360,7 +365,7 @@ function SpectralHmetisRefinement(;refine_iters::Int = 4, solver_iters::Int = 20
 
     if hypergraph_clustered.e < hyperedges_threshold
         @info "RUNNING GUROBI AS GOLDEN PARTITIONER"
-        cmd = "python3 SpecPart/ilp_k_solver.py" * " " * hg_name_clustered * " " * string(num_parts) * " " * string(ub_factor) * " > ilp_log.txt"
+        cmd = "python ilp_k_solver.py" * " " * hg_name_clustered * " " * string(num_parts) * " " * string(ub_factor) * " > ilp_log.txt"
         t_part = @elapsed begin
             run(`sh -c $cmd`, wait=true)
             pname = hg_name_clustered * ".part." * string(Nparts)
@@ -380,7 +385,7 @@ function SpectralHmetisRefinement(;refine_iters::Int = 4, solver_iters::Int = 20
         end
     else
         @info "RUNNING HMETIS AS GOLDEN PARTITIONER"
-        t_part = @elapsed hmetis(hg_name_clustered, num_parts, ub_factor, 10, 1, 1, 0, 1, 0, "./SpecPart/hmetis") #"SpectralCommunityDetection/hmetis")
+        t_part = @elapsed hmetis(hg_name_clustered, num_parts, ub_factor, 10, 1, 1, 0, 1, 0, "./hmetis") #"SpectralCommunityDetection/hmetis")
         pname = hg_name_clustered * ".part." * string(Nparts)
         f = open(pname, "r")
 
@@ -401,7 +406,7 @@ function SpectralHmetisRefinement(;refine_iters::Int = 4, solver_iters::Int = 20
     part_area = [0, 0]
     partition_vector_top = zeros(Int, hypergraph_processed.n)
     post_tool_cut = findCutsize(partition_vector, hypergraph_clustered, incidence_struct_clustered)
-
+    post_tool_cut = 1000000
     @info "[POST TOOL CUT] CUT RECORDED IS $post_tool_cut"
 
     tool_cut = false

@@ -1,0 +1,15 @@
+install
+*.so
+.DS_Store
+.vscode/*
+.idea/*
+benchmark/
+ICCAD2022_hgr/
+SpecPart/*.txt
+SpecPart/*.part.*
+SpecPart/*.hgr
+SpecPart/*.gr
+SpecPart/*.wts
+*.gr
+*.wts
+*.zip

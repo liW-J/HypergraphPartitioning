@@ -101,7 +101,7 @@ function metis(fname::String, seed::Int, opts::String)
     ub_factor = 2
     #metis_r = "./gpmetis " * fname * " 2 -ptype=rb -ufactor=100 -dbglvl=0" # > 'metis_log.txt'"""
     #metis_r = `./gpmetis $fname 2 -ptype=rb -ufactor=100 -dbglvl=0` 
-    metis_r = `./SpecPart/metis_script.sh $fname $num_parts $ub_factor $seed $log_name`
+    metis_r = `./metis_script.sh $fname $num_parts $ub_factor $seed $log_name`
     run(metis_r, wait=true)
     cmd = "rm -r " * log_name
     run(`sh -c $cmd`, wait=true)
@@ -211,9 +211,10 @@ function ComputeTreePartition(adj_mat::SparseMatrixCSC, X::Array{Float64}, wt_ma
 
     pvec_metis = MetisOnTree(hypergraph, incidence_struct, fixed_vertices, tree, treeMatrix, capacities, seed, opts)
     cut_metis = findCutsize(pvec_metis, hypergraph, incidence_struct)
+    cut_metis = 1000000
     pvec_sweep, cut_sweep = FindBestCutOnTree(tree, hypergraph, incidence_struct, fixed_vertices, capacities, 1)
 
-    #@info "Tree type: $opts :: cut recorded :: $cut_metis :: $cut_sweep"
+    @info "Tree type: $opts :: cut recorded :: $cut_metis :: $cut_sweep"
 
     if cut_metis < cut_sweep
         return pvec_metis, cut_metis
