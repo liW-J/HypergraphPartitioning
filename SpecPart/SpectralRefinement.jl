@@ -458,7 +458,7 @@ function SpectralHmetisRefinement(;refine_iters::Int = 4, solver_iters::Int = 20
             part_area[min_side] += vertex_weights[v]
         end
 
-        f = open(hg_name * "_" * string(ub_factor) * ".part." * string(num_parts), "w")
+        f = open(hg_name * ".part." * string(num_parts), "w")
 
         for i in 1:length(final_part)
             println(f, final_part[i])
