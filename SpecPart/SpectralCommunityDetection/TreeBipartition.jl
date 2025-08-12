@@ -27,8 +27,7 @@ end
 
 function TreeBipartition(tree::SimpleWeightedGraphs.SimpleGraph, tree_cut_token::TreeCutToken, hypergraph::Hypergraph, incidence_struct::Incidence, fixed_vtxs::Pindex, capacities::Vector{Int}, ncuts::Int)
     cutInfo = analyzeCutsOnTree(hypergraph, incidence_struct, hypergraph.vwts, fixed_vtxs, tree, tree_cut_token.hyperedges_flag)
-    clique_adj = buildCliqueGraph(hypergraph)
-    
+
     hyperedge_wts = hypergraph.hwts
     n = hypergraph.n
     vtxCuts = cutInfo.vtxCuts
@@ -81,6 +80,11 @@ function TreeBipartition(tree::SimpleWeightedGraphs.SimpleGraph, tree_cut_token:
 
         tree_cut_token.ratioCost[i] = tree_cut_token.cutCost[i] / (tree_cut_token.areaUtil0[i] * tree_cut_token.areaUtil1[i])
         tree_cut_token.tCost_v[i] = tree_cut_token.cutCost[i] + tree_cut_token.areaCost[i]
+
+        if i != 1
+            clique_cost = calCliqueCost(hypergraph, tree, i, tree_cut_token.pred)
+            # tree_cut_token.tCost_v[i] += clique_cost
+        end
     end
 
     return cutInfo
@@ -165,71 +169,39 @@ function FindBestCutOnTree(tree::SimpleWeightedGraphs.SimpleGraph, hypergraph::H
     return part_vector .- 1, cut_size
 end
 
-function buildCliqueGraph(hypergraph::Hypergraph)
-    n = hypergraph.n
-    e = hypergraph.e
-    hedges = hypergraph.hedges
-    eptr = hypergraph.eptr
-    hwts = hypergraph.hwts
 
-    # 使用稀疏矩阵构建 clique graph
-    clique_adj = spzeros(Int, n, n)
+function calCliqueCost(hypergraph::Hypergraph, tree::SimpleWeightedGraphs.SimpleGraph, cut_index::Int, pred::Vector{Int})
+    SimpleWeightedGraphs.rem_edge!(tree, cut_index, pred[cut_index])
+    components = SimpleWeightedGraphs.connected_components(tree)
+    part_vector = findLabels(components, hypergraph.n)
+    SimpleWeightedGraphs.add_edge!(tree, cut_index, pred[cut_index])
 
-    for i in 1:e
-        start_idx = eptr[i]
-        end_idx = eptr[i+1] - 1
-        vertices = hedges[start_idx:end_idx]
-        weight = hwts[i]
+    hyperedges_pair_list = zeros(Int, hypergraph.e, 2)
+    for i in 1:hypergraph.e
+        start_idx = hypergraph.eptr[i]
+        end_idx = hypergraph.eptr[i+1]
+        hyperedges_pair_list[i, 1] = start_idx
+        hyperedges_pair_list[i, 2] = end_idx - 1
+    end
 
-        # 在 clique 中的每对顶点之间添加边
-        for j in 1:length(vertices)
-            for k in j+1:length(vertices)
-                u = vertices[j]
-                v = vertices[k]
-                clique_adj[u, v] += weight
-                clique_adj[v, u] += weight
-            end
+    clique_graph_cut = 0
+
+    for (i, hyperedge_pair) in enumerate(eachrow(hyperedges_pair_list))
+        start_idx = hyperedge_pair[1]
+        end_idx = hyperedge_pair[2]
+        nodesId = hypergraph.hedges[start_idx:end_idx]
+        nodesNum = end_idx - start_idx + 1
+
+        num_nodes_in_part0 = count(nodeId -> part_vector[nodeId] == 1, nodesId)
+        num_nodes_in_part1 = nodesNum - num_nodes_in_part0
+
+        if nodesNum > 1
+            edge_weight = hypergraph.hwts[i] / (nodesNum - 1)
+            clique_graph_cut += edge_weight * num_nodes_in_part0 * num_nodes_in_part1
         end
     end
 
-    return clique_adj
-end
+    clique_cost = -clique_graph_cut
 
-function computeCliqueCutCost(clique_adj::SparseMatrixCSC{Int,Int}, cut_vertex::Int,
-    vtxCuts::Vector{Int}, total_vwts::Int, polarity::Int)
-    n = size(clique_adj, 1)
-    clique_cut_cost = 0.0
-
-    # 根据极性确定分割点
-    if polarity == 0
-        split_point = vtxCuts[cut_vertex]
-    else
-        split_point = total_vwts - vtxCuts[cut_vertex]
-    end
-
-    # 计算每个顶点属于哪个分区
-    vertex_partition = zeros(Int, n)
-    current_sum = 0
-
-    # 这里需要根据树的遍历顺序来确定顶点分区
-    # 简化版本：假设顶点按某种顺序排列
-    for i in 1:n
-        current_sum += 1  # 假设每个顶点权重为1
-        if current_sum <= split_point
-            vertex_partition[i] = 0
-        else
-            vertex_partition[i] = 1
-        end
-    end
-
-    # 计算跨越分区的边权重
-    for i in 1:n
-        for j in i+1:n
-            if clique_adj[i, j] > 0 && vertex_partition[i] != vertex_partition[j]
-                clique_cut_cost += clique_adj[i, j]
-            end
-        end
-    end
-
-    return clique_cut_cost
+    return clique_cost
 end

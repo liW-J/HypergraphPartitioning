@@ -93,6 +93,27 @@ include("Modified_Prims.jl")
 include("BuildMetisGraph.jl")
 include("AnalyzeSpectralCuts.jl")
 
+function calculateCliqueGraphCut(HG::Hypergraph, hyperedges_pair_list::Array{Int}, pvec::Vector{Int})
+    clique_graph_cut = 0.0
+
+    for (i, hyperedge_pair) in enumerate(eachrow(hyperedges_pair_list))
+        start_idx = hyperedge_pair[1]
+        end_idx   = hyperedge_pair[2]
+        nodesId   = HG.hedges[start_idx:end_idx]
+        nodesNum  = end_idx - start_idx + 1
+
+        num_nodes_in_part0 = count(nodeId -> pvec[nodeId] == 0, nodesId)
+        num_nodes_in_part1 = nodesNum - num_nodes_in_part0
+
+        if nodesNum > 1
+            edge_weight = HG.hwts[i] / (nodesNum - 1)
+            clique_graph_cut += edge_weight * num_nodes_in_part0 * num_nodes_in_part1
+        end
+    end
+
+    return clique_graph_cut
+end
+
 function metis(fname::String, seed::Int, opts::String)
     time_stamp = string(now())
     log_name = "metis" * opts * "." * time_stamp * "log.txt"
@@ -211,7 +232,17 @@ function ComputeTreePartition(adj_mat::SparseMatrixCSC, X::Array{Float64}, wt_ma
 
     pvec_metis = MetisOnTree(hypergraph, incidence_struct, fixed_vertices, tree, treeMatrix, capacities, seed, opts)
     cut_metis = findCutsize(pvec_metis, hypergraph, incidence_struct)
-    cut_metis = 1000000
+
+    hyperedges_pair_list = zeros(Int, hypergraph.e, 2)
+    for i in 1:hypergraph.e
+        start_idx = hypergraph.eptr[i]
+        end_idx = hypergraph.eptr[i+1]
+        hyperedges_pair_list[i, 1] = start_idx
+        hyperedges_pair_list[i, 2] = end_idx-1
+    end
+    # cut_clique = calculateCliqueGraphCut(hypergraph, hyperedges_pair_list, pvec_metis)
+
+    cut_metis = 1e9
     pvec_sweep, cut_sweep = FindBestCutOnTree(tree, hypergraph, incidence_struct, fixed_vertices, capacities, 1)
 
     @info "Tree type: $opts :: cut recorded :: $cut_metis :: $cut_sweep"
@@ -303,8 +334,8 @@ function RefineIteratively(pvec::Vector{Int}, hypergraph_c::Hypergraph_C, incide
     min_tree = 0
     all_tree_parts = zeros(Int, families*iters, hypergraph.n)
     tree_part_family = zeros(Int, families, hypergraph.n)
-    all_cuts = zeros(Int, families*iters)
-    list_of_cuts = zeros(Int, families)
+    all_cuts = zeros(Float32, families*iters)
+    list_of_cuts = zeros(Float32, families)
     best_family = tree_part_family
     best_list_of_cuts = list_of_cuts
     global_min_cut = min_cut
